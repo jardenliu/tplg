@@ -3,7 +3,6 @@ use chrono::{FixedOffset, Utc};
 use std::fs::File;
 use std::io::Read;
 use std::process::Command;
-use users::get_current_username;
 use serde_json::Value;
 
 pub fn get_user_info() -> (String, String) {
@@ -24,13 +23,17 @@ pub fn get_user_info() -> (String, String) {
             }
         }
     }
+
     if username.is_empty() {
-        if let Some(user) = get_current_username() {
-            if let Ok(utf8_str) = user.into_string() {
-                username = utf8_str;
+        if let Ok(output) = Command::new("whoami").output() {
+            if output.status.success() {
+                if let Ok(utf8_str) = String::from_utf8(output.stdout) {
+                    username = utf8_str.trim().to_string();
+                }
             }
         }
     }
+
     (username, email)
 }
 
