@@ -1,0 +1,97 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: windows-latest
+            target: i686-pc-windows-msvc
+          - platform: windows-latest
+            target: aarch64-pc-windows-msvc
+
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - platform: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ format('target/{0}/release/tplg{1}', matrix.target, contains(matrix.platform, 'windows') && '.exe' || '') }}
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Set output
+        id: vars
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # mac
+      - name: mv aarch64-apple-darwin
+        run: mv artifacts/aarch64-apple-darwin/tplg artifacts/tplg-aarch64-apple-darwin
+      - name: mv x86_64-apple-darwin
+        run: mv artifacts/x86_64-apple-darwin/tplg artifacts/tplg-x64-apple-darwin
+      # windows
+      - name: mv x86_64-pc-windows-msvc
+        run: mv artifacts/x86_64-pc-windows-msvc/tplg.exe artifacts/tplg-x64-pc-windows-msvc.exe
+      - name: mv i686-pc-windows-msvc
+        run: mv artifacts/i686-pc-windows-msvc/tplg.exe artifacts/tplg-x86-pc-windows-msvc.exe
+      - name: mv aarch64-pc-windows-msvc
+        run: mv artifacts/aarch64-pc-windows-msvc/tplg.exe artifacts/tplg-aarch64-pc-windows-msvc.exe
+      # linux
+      - name: mv aarch64-unknown-linux-gnu
+        run: mv artifacts/aarch64-unknown-linux-gnu/tplg artifacts/tplg-aarch64-linux
+      - name: mv x86_64-unknown-linux-gnu
+        run: mv artifacts/x86_64-unknown-linux-gnu/tplg artifacts/tplg-amd64-linux
+  
+      - name: Generate changelog
+        id: create_release
+        run: npx changelogithub --name ${{ steps.vars.outputs.tag }} --assets artifacts/tplg-aarch64-apple-darwin,artifacts/tplg-x64-apple-darwin,artifacts/tplg-x64-pc-windows-msvc.exe,artifacts/tplg-x86-pc-windows-msvc.exe,artifacts/tplg-aarch64-pc-windows-msvc.exe,artifacts/tplg-aarch64-linux,artifacts/tplg-amd64-linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
