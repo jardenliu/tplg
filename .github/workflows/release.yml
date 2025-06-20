@@ -104,7 +104,7 @@ jobs:
         run: |
           VERSION=$(echo "${{ steps.vars.outputs.tag }}" | sed 's/^v//')
           echo '{"name":"tplg-binary","version":"'$VERSION'","description":"tplg-binary"}' > dist/package.json   
-      
+          echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN} \n registry=https://registry.npmjs.org/ \n always-auth=true' > dist/.npmrc
       - name: publish npm
         run: cd dist && npm publish
         env:
