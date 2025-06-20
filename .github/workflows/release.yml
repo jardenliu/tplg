@@ -101,9 +101,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create package.json
-        run: echo '{"name":"tplg-binary","version":"${{ steps.vars.outputs.tag | replace('v', '') }}","description":"tplg-binary"}' > dist/package.json 
+        run: |
+          VERSION=$(echo "${{ steps.vars.outputs.tag }}" | sed 's/^v//')
+          echo '{"name":"tplg-binary","version":"$VERSION''","description":"tplg-binary"}' > dist/package.json 
       
       - name: publish npm
         run: cd dist && npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
