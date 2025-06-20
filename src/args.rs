@@ -7,4 +7,8 @@ pub struct Args {
     /// Output directory path
     #[arg(short, long)]
     pub out: String,
+
+    /// Template directory path
+    #[arg(short, long)]
+    pub template: Option<String>,
 }
