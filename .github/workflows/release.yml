@@ -106,6 +106,6 @@ jobs:
           echo '{"name":"tplg-binary","version":"'$VERSION'","description":"tplg-binary"}' > dist/package.json   
       
       - name: publish npm
-        run: cd dist && npm publish --access public
+        run: cd dist && npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
