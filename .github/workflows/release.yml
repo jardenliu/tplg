@@ -72,26 +72,38 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: create dist
+        run: rm -rf dist && mkdir dist
       # mac
       - name: mv aarch64-apple-darwin
-        run: mv artifacts/aarch64-apple-darwin/tplg artifacts/tplg-aarch64-apple-darwin
+        run: mv artifacts/aarch64-apple-darwin/tplg dist/tplg-aarch64-apple-darwin
       - name: mv x86_64-apple-darwin
-        run: mv artifacts/x86_64-apple-darwin/tplg artifacts/tplg-x64-apple-darwin
+        run: mv artifacts/x86_64-apple-darwin/tplg dist/tplg-x64-apple-darwin
       # windows
       - name: mv x86_64-pc-windows-msvc
-        run: mv artifacts/x86_64-pc-windows-msvc/tplg.exe artifacts/tplg-x64-pc-windows-msvc.exe
+        run: mv artifacts/x86_64-pc-windows-msvc/tplg.exe dist/tplg-x64-pc-windows-msvc.exe
       - name: mv i686-pc-windows-msvc
-        run: mv artifacts/i686-pc-windows-msvc/tplg.exe artifacts/tplg-x86-pc-windows-msvc.exe
+        run: mv artifacts/i686-pc-windows-msvc/tplg.exe dist/tplg-x86-pc-windows-msvc.exe
       - name: mv aarch64-pc-windows-msvc
-        run: mv artifacts/aarch64-pc-windows-msvc/tplg.exe artifacts/tplg-aarch64-pc-windows-msvc.exe
+        run: mv artifacts/aarch64-pc-windows-msvc/tplg.exe dist/tplg-aarch64-pc-windows-msvc.exe
       # linux
       - name: mv aarch64-unknown-linux-gnu
-        run: mv artifacts/aarch64-unknown-linux-gnu/tplg artifacts/tplg-aarch64-linux
+        run: mv artifacts/aarch64-unknown-linux-gnu/tplg dist/tplg-aarch64-linux
       - name: mv x86_64-unknown-linux-gnu
-        run: mv artifacts/x86_64-unknown-linux-gnu/tplg artifacts/tplg-amd64-linux
-  
+        run: mv artifacts/x86_64-unknown-linux-gnu/tplg dist/tplg-amd64-linux
+
+      
       - name: Generate changelog
         id: create_release
-        run: npx changelogithub --name ${{ steps.vars.outputs.tag }} --assets artifacts/tplg-aarch64-apple-darwin,artifacts/tplg-x64-apple-darwin,artifacts/tplg-x64-pc-windows-msvc.exe,artifacts/tplg-x86-pc-windows-msvc.exe,artifacts/tplg-aarch64-pc-windows-msvc.exe,artifacts/tplg-aarch64-linux,artifacts/tplg-amd64-linux
+        run: npx changelogithub --name ${{ steps.vars.outputs.tag }} --assets dist/tplg-aarch64-apple-darwin,dist/tplg-x64-apple-darwin,dist/tplg-x64-pc-windows-msvc.exe,dist/tplg-x86-pc-windows-msvc.exe,dist/tplg-aarch64-pc-windows-msvc.exe,dist/tplg-aarch64-linux,dist/tplg-amd64-linux
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create package.json
+        run: echo '{"name":"tplg-binary","version":"${{ steps.vars.outputs.tag | replace('v', '') }}","description":"tplg-binary"}' > dist/package.json 
+      
+      - name: publish npm
+        run: cd dist && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
